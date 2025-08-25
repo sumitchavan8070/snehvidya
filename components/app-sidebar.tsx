@@ -128,19 +128,19 @@ export function AppSidebar({ user }: AppSidebarProps) {
           { title: "Exam", url: "/dashboard/exam", icon: <FaFileAlt className="h-4 w-4" /> },
           { title: "Assignments", url: "/dashboard/teacher/assignments", icon: <FaTasks className="h-4 w-4" /> },
           { title: "Leaves", url: "/dashboard/teacher/leave", icon: <FaCalendarTimes className="h-4 w-4" /> },
-           {
-            title: "Students",
+          {
+            title: "My Class Students",
             icon: <FaUserGraduate className="h-4 w-4" />,
             children: [
               {
-                title: "Fees Details", url: "/dashboard/teacher/students/fees",
+                title: "Sudents Fee Details", url: "/dashboard/teacher/students/fees",
                 icon: <FaMoneyBillWave className="h-4 w-4" />
               },
               {
-                title: "Manage Attendance", url: "/dashboard/teacher/students",
+                title: "Manage Student Attendance", url: "/dashboard/teacher/students",
                 icon: <FaClipboardCheck className="h-4 w-4" />
               },
-                {
+              {
                 title: "Fees Structure", url: "/dashboard/teacher/students/fees-structure",
                 icon: <FaReceipt className="h-4 w-4" />
               },
@@ -171,14 +171,14 @@ export function AppSidebar({ user }: AppSidebarProps) {
     <Sidebar className="bg-card shadow-lg">
       <SidebarHeader className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-               <Image
-                 src="/snehvidya_logo.png"
-                 alt="School Logo"
-                 width={40}
-                 height={40}
-                 className="rounded-full"
-               />
-           
+          <Image
+            src="/snehvidya_logo.png"
+            alt="School Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
+
           <span className="font-bold text-lg text-primary">School MS</span>
         </div>
         <div className="mt-4 p-2 rounded-md bg-secondary text-secondary-foreground">
