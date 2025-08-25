@@ -44,14 +44,14 @@ export default function FeesStructureManagement() {
     setLoading(true)
     try {
       const res = await api.getFeesStructure()
-      const data = await res.json()
+      // const data = await res.json()
 
-      if (data.status !== 1) {
+      if (res.status !== 1) {
         toast.error("Failed to load fees")
         return
       }
 
-      const parsedFees: FeeStructure[] = data.result.map((fee: any) => ({
+      const parsedFees: FeeStructure[] = res.result.map((fee: any) => ({
         ...fee,
         tuition_fee: parseFloat(fee.tuition_fee),
         annual_fee: parseFloat(fee.annual_fee),
@@ -59,7 +59,7 @@ export default function FeesStructureManagement() {
         q1: parseFloat(fee.q1),
         q2: parseFloat(fee.q2),
         q3: parseFloat(fee.q3),
-        q4: fee.q4 !== null ? parseFloat(fee.q4) : null,
+        q4:  parseFloat(fee.q4),
       }))
 
       setFees(parsedFees)
