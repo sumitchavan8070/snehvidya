@@ -65,46 +65,25 @@ export default function FeesStructureManagement() {
     setLoading(true)
     try {
       const res = await api.getFeesStructure()
-      if (res.status !== 1 || !Array.isArray(res.result)) {
-        toast.error("Failed to load fees or data format is incorrect.")
-        setFees([])
+      // const data = await res.json()
+
+      if (res.status !== 1) {
+        toast.error("Failed to load fees")
         return
       }
 
-      // Helper: safely parse strings/numbers/null → number|null
-      const parseNumber = (value: any): number | null => {
-        if (value === null || value === undefined) return null
-        const num = parseFloat(value)
-        return isNaN(num) ? null : num
-      }
+      const parsedFees: FeeStructure[] = res.result.map((fee: any) => ({
+        ...fee,
+        tuition_fee: parseFloat(fee.tuition_fee),
+        annual_fee: parseFloat(fee.annual_fee),
+        total_fee: parseFloat(fee.total_fee),
+        q1: parseFloat(fee.q1),
+        q2: parseFloat(fee.q2),
+        q3: parseFloat(fee.q3),
+        q4:  parseFloat(fee.q4),
+      }))
 
-      const parsedFees: FeeStructure[] = res.result
-        .filter((fee: any) => fee.class_name)
-        .map((fee: RawFeeStructure) => {
-          const coreServices: ServiceBreakdown[] = (Object.keys(CORE_LABELS) as Array<keyof typeof CORE_LABELS>)
-            .map((key) => ({
-              name: CORE_LABELS[key],
-              amount: parseNumber((fee as any)[key]) ?? 0,
-              category: "core" as const
-            }))
-          const optionalServices = parseOptionalServices(fee.additional_services)
-
-          return {
-            ...fee,
-            tuition_fee: parseNumber(fee.tuition_fee),
-            annual_fee: parseNumber(fee.annual_fee),
-            total_fee: parseNumber(fee.total_fee),
-            q1: parseNumber(fee.q1),
-            q2: parseNumber(fee.q2),
-            q3: parseNumber(fee.q3),
-            q4: parseNumber(fee.q4),
-            services: [...coreServices, ...optionalServices]
-          }
-        })
-
-      const overrides = loadOverrides()
-      const merged = applyOverrides(parsedFees, overrides)
-      setFees(merged)
+      setFees(parsedFees)
     } catch (err) {
       console.error("Error in fetchFees:", err)
       toast.error("Error fetching fees.")

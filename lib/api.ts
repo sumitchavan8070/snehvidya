@@ -151,6 +151,11 @@ class ApiClient {
     return this.request("/fees-structure")
 
   }
+
+    getTimetable(){
+    return this.request("/timetable")
+
+  }
 // updateFeesStructure(id: number , formData){
 //     return this.request("/fees-structure")
 

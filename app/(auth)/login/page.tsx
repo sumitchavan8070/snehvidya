@@ -103,14 +103,13 @@
 
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image" // ✅ Import the Image component
-
+import Image from "next/image" // ✅ Import Image component
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-import { HttpClientService } from "@/app/request/http-client.service" 
+import { HttpClientService } from "@/app/request/http-client.service"
 
 const httpClient = new HttpClientService();
 
@@ -158,17 +157,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4">
-          {/* ✅ Add the logo here */}
+        <CardHeader className="space-y-1">
+          {/* ✅ Add the logo */}
           <div className="flex justify-center">
-            <Image 
-              src={Logo} 
-              alt="School Logo" 
-              width={120} // Adjust width as needed
-              height={120} // Adjust height as needed
-              className="rounded-full" // Optional: add styling
+            <Image
+              src="/snehvidya_logo.png" // ⚠️ Replace with the actual path to your logo file
+              alt="School Logo"
+              width={120} // Set appropriate width
+              height={120} // Set appropriate height
+              className="mb-4 rounded-full"
             />
           </div>
+
           <CardTitle className="text-2xl text-center">School Management System</CardTitle>
           <CardDescription className="text-center">
             Enter your credentials to access your account
