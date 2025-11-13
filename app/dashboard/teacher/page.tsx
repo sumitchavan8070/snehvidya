@@ -126,18 +126,84 @@ export default function TeacherDashboard() {
             <CardDescription>Common teacher tasks</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
-            <button className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
+            <a href="/dashboard/teacher/attendance" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
               Mark Attendance
-            </button>
-            <button className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
+            </a>
+            <a href="/dashboard/teacher/assignments" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
               Create Assignment
-            </button>
-            <button className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
+            </a>
+            <a href="/dashboard/teacher/assignments" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
               Grade Assignments
-            </button>
-            <button className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
-              Send Message to Parents
-            </button>
+            </a>
+            <a href="/dashboard/teacher/support" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
+              Contact Support
+            </a>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Announcements</CardTitle>
+            <CardDescription>Latest from school administration</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start justify-between gap-4 p-3 border rounded">
+                <div>
+                  <p className="font-medium">PTM scheduled next Friday</p>
+                  <p className="text-muted-foreground">Parent-Teacher meeting for Grades 9–12</p>
+                </div>
+                <span className="text-xs text-gray-500">Nov 10</span>
+              </li>
+              <li className="flex items-start justify-between gap-4 p-3 border rounded">
+                <div>
+                  <p className="font-medium">Unit Test timetable published</p>
+                  <p className="text-muted-foreground">Check exam section for your subjects</p>
+                </div>
+                <span className="text-xs text-gray-500">Nov 8</span>
+              </li>
+              <li className="flex items-start justify-between gap-4 p-3 border rounded">
+                <div>
+                  <p className="font-medium">Staff meeting at 4 PM</p>
+                  <p className="text-muted-foreground">Briefing in auditorium</p>
+                </div>
+                <span className="text-xs text-gray-500">Today</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Pending Reviews</CardTitle>
+            <CardDescription>Assignments awaiting your attention</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center justify-between p-3 border rounded">
+                <div>
+                  <p className="font-medium">Physics: Worksheet 3</p>
+                  <p className="text-muted-foreground">Grade 11B • 12 submissions</p>
+                </div>
+                <a href="/dashboard/teacher/assignments" className="text-blue-600 text-xs">Review</a>
+              </div>
+              <div className="flex items-center justify-between p-3 border rounded">
+                <div>
+                  <p className="font-medium">Chemistry: Lab Report</p>
+                  <p className="text-muted-foreground">Grade 12A • 8 submissions</p>
+                </div>
+                <a href="/dashboard/teacher/assignments" className="text-blue-600 text-xs">Review</a>
+              </div>
+              <div className="flex items-center justify-between p-3 border rounded">
+                <div>
+                  <p className="font-medium">Mathematics: Algebra Quiz</p>
+                  <p className="text-muted-foreground">Grade 10A • 20 submissions</p>
+                </div>
+                <a href="/dashboard/teacher/assignments" className="text-blue-600 text-xs">Review</a>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

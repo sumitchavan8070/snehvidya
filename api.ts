@@ -10,6 +10,7 @@ class ApiClient {
     return this.request<any>("/auth/profile")
   }
 
+  
 
   private baseURL: string
   private token: string | null = null

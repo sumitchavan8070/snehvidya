@@ -1,3 +1,4 @@
+
 export default function PaymentsPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen space-y-4">

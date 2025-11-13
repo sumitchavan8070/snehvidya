@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
+
 import {
   Sidebar,
   SidebarContent,
@@ -29,8 +31,12 @@ import {
   FaPersonBooth,
   FaChevronDown,
   FaChevronRight,
+  FaLifeRing,
+  FaLock,
 } from "react-icons/fa"
-import { ReactNode } from "react"
+
+// ✅ Import your logo image
+import Logo from "@/public/snehvidya_logo.png"
 
 interface AppSidebarProps {
   user: any
@@ -62,48 +68,43 @@ export function AppSidebar({ user }: AppSidebarProps) {
   const getMenuItems = (): MenuItem[] => {
     const commonItems: MenuItem[] = [
       { title: "Dashboard", url: `/dashboard/${userRole}`, icon: <FaTh /> },
+      { title: "Change Password", url: "/dashboard/change-password", icon: <FaLock /> },
     ]
 
     switch (userRole) {
       case "admin":
-      case "principal":
         return [
           ...commonItems,
           {
             title: "Students",
             icon: <FaGraduationCap />,
             children: [
-              {
-                title: "Student List", url: "/dashboard/admin/students",
-                icon: undefined
-              },
-              {
-                title: "Add Student", url: "/dashboard/admin/students/add",
-                icon: undefined
-              },
+              { title: "Student List", url: "/dashboard/admin/students", icon: undefined },
+              { title: "Add Student", url: "/dashboard/admin/students/add", icon: undefined },
             ],
           },
           {
             title: "Staff",
             icon: <FaUsers />,
             children: [
-              {
-                title: "Staff List", url: "/dashboard/admin/staff",
-                icon: undefined
-              },
-              {
-                title: "Add Staff", url: "/dashboard/admin/staff/add",
-                icon: undefined
-              },
+              { title: "Staff List", url: "/dashboard/admin/staff", icon: undefined },
+              { title: "Add Staff", url: "/dashboard/admin/staff/add", icon: undefined },
             ],
           },
-          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <FaCalendarAlt /> },
           { title: "Fees", url: "/dashboard/admin/fees", icon: <FaDollarSign /> },
           { title: "Reports", url: "/dashboard/admin/reports", icon: <FaFileAlt /> },
           { title: "Profile", url: "/dashboard/profile", icon: <FaPersonBooth /> },
           { title: "Settings", url: "/dashboard/admin/settings", icon: <FaCog /> },
         ]
-
+      case "principal":
+        return [
+          ...commonItems,
+          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <FaCalendarAlt /> },
+          { title: "Staff Directory", url: "/dashboard/principal/staff", icon: <FaUsers /> },
+          { title: "Fees Structure", url: "/dashboard/principal/fees-structure", icon: <FaDollarSign /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <FaPersonBooth /> },
+          { title: "Settings", url: "/dashboard/principal/settings", icon: <FaCog /> },
+        ]
       case "teacher":
         return [
           ...commonItems,
@@ -111,26 +112,16 @@ export function AppSidebar({ user }: AppSidebarProps) {
           { title: "Attendance", url: "/dashboard/teacher/attendance", icon: <FaCalendarAlt /> },
           { title: "Timetable", url: "/dashboard/timetable", icon: <FaCalendarAlt /> },
           { title: "Exam", url: "/dashboard/exam", icon: <FaCalendarAlt /> },
-
           { title: "Assignments", url: "/dashboard/teacher/assignments", icon: <FaFileAlt /> },
           { title: "Leaves", url: "/dashboard/teacher/leave", icon: <FaFileAlt /> },
-           {
+          { title: "Support", url: "/dashboard/teacher/support", icon: <FaLifeRing /> },
+          {
             title: "Students",
             icon: <FaGraduationCap />,
             children: [
-              {
-                title: "Fees details", url: "/dashboard/teacher/students/fees",
-                icon: undefined
-              },
-              {
-                title: "Manage Attendance", url: "/dashboard/teacher/students",
-                icon: undefined
-              },
-                {
-                title: "Fees structure", url: "/dashboard/teacher/students/fees-structure",
-                icon: undefined
-              },
-
+              { title: "Fees details", url: "/dashboard/teacher/students/fees", icon: undefined },
+              { title: "Manage Attendance", url: "/dashboard/teacher/students", icon: undefined },
+              { title: "Fees structure", url: "/dashboard/teacher/students/fees-structure", icon: undefined },
             ],
           },
           { title: "Profile", url: "/dashboard/profile", icon: <FaPersonBooth /> },
@@ -143,6 +134,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           { title: "Attendance", url: "/dashboard/student/attendance", icon: <FaCalendarAlt /> },
           { title: "Assignments", url: "/dashboard/student/assignments", icon: <FaFileAlt /> },
           { title: "Fees", url: "/dashboard/student/fees", icon: <FaDollarSign /> },
+          { title: "ID Card Application", url: "/dashboard/student/id-card", icon: <FaFileAlt /> },
           { title: "Profile", url: "/dashboard/profile", icon: <FaPersonBooth /> },
         ]
 
@@ -155,12 +147,20 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
+   <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <FaGraduationCap className="h-6 w-6" />
+          {/* <FaGraduationCap className="h-6 w-6" /> */}
+           <Image 
+              src={Logo} 
+              alt="School Logo" 
+              width={60} // Adjust width as needed
+              height={60} // Adjust height as needed
+              className="rounded-full" // Optional: add styling
+            />
+          
           <span className="font-semibold">School MS</span>
         </div>
-        <div className="mt-2 text-sm text-muted-foreground">
+        <div className="mt-2 text-l font-semibold text-muted-foreground">
           <p>
             {user?.firstName} {user?.lastName}
           </p>
@@ -177,26 +177,27 @@ export function AppSidebar({ user }: AppSidebarProps) {
                 <SidebarMenuItem key={item.title}>
                   {item.children ? (
                     <>
-                      <button
+                      <SidebarMenuButton
                         onClick={() => toggleMenu(item.title)}
-                        className="w-full flex items-center justify-between px-2 py-1 hover:bg-accent rounded-md"
+                        className="w-full justify-between"
                       >
                         <span className="flex items-center gap-2">
                           {item.icon}
                           {item.title}
                         </span>
                         {openMenus.includes(item.title) ? <FaChevronDown /> : <FaChevronRight />}
-                      </button>
+                      </SidebarMenuButton>
                       {openMenus.includes(item.title) && (
-                        <div className="ml-6 mt-1 space-y-1">
+                        <div className="ml-4 mt-1 space-y-1">
                           {item.children.map((sub) => (
-                            <a
+                            <SidebarMenuButton
                               key={sub.title}
-                              href={sub.url}
-                              className="block px-2 py-1 text-sm hover:bg-accent rounded-md"
+                              asChild
                             >
-                              {sub.title}
-                            </a>
+                              <a href={sub.url} className="w-full justify-start text-sm">
+                                {sub.title}
+                              </a>
+                            </SidebarMenuButton>
                           ))}
                         </div>
                       )}
@@ -217,7 +218,11 @@ export function AppSidebar({ user }: AppSidebarProps) {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <Button variant="outline" onClick={handleLogout} className="w-full bg-transparent">
+        <Button
+          variant="outline"
+          onClick={handleLogout}
+          className="w-full bg-transparent text-red-500 hover:bg-red-50 hover:text-red-600 border-red-200"
+        >
           <FaSignOutAlt className="mr-2 h-4 w-4" />
           Logout
         </Button>

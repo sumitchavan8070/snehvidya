@@ -1,40 +1,61 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
-import {
-  Table, TableHeader, TableRow, TableHead, TableCell, TableBody
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+import { Table, TableHeader, TableRow, TableHead, TableCell, TableBody } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
 
-interface FeeStructure {
+type NullableNumber = number | null
+
+interface RawFeeStructure {
   id?: number
   school_id: number
   class_name: string
-  tuition_fee: number
-  annual_fee: number
-  total_fee: number
-  q1: number
-  q2: number
-  q3: number
-  q4: number 
+  tuition_fee: NullableNumber
+  annual_fee: NullableNumber
+  total_fee: NullableNumber
+  q1: NullableNumber
+  q2: NullableNumber
+  q3: NullableNumber
+  q4: NullableNumber
+  additional_services?: Record<string, any> | string | null
+}
+
+interface ServiceBreakdown {
+  name: string
+  amount: number
+  category: "core" | "service"
+}
+
+interface FeeStructure extends RawFeeStructure {
+  services: ServiceBreakdown[]
+}
+
+interface FeeOverride {
+  class_name: string
+  tuition_fee?: NullableNumber
+  annual_fee?: NullableNumber
+  q1?: NullableNumber
+  q2?: NullableNumber
+  q3?: NullableNumber
+  q4?: NullableNumber
+  services?: Array<{ id: string; name: string; amount: number }>
+  total_fee?: NullableNumber
+}
+
+const FEES_OVERRIDES_KEY = "sv_fee_structure_overrides"
+
+const CORE_LABELS: Record<keyof Pick<RawFeeStructure, "tuition_fee" | "annual_fee">, string> = {
+  tuition_fee: "Tuition",
+  annual_fee: "Annual"
 }
 
 export default function FeesStructureManagement() {
   const [fees, setFees] = useState<FeeStructure[]>([])
   const [loading, setLoading] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editingFee, setEditingFee] = useState<FeeStructure | null>(null)
-  const [formData, setFormData] = useState<Partial<FeeStructure>>({})
 
   useEffect(() => {
     fetchFees()
@@ -44,88 +65,66 @@ export default function FeesStructureManagement() {
     setLoading(true)
     try {
       const res = await api.getFeesStructure()
-      const data = await res.json()
-
-      if (data.status !== 1) {
-        toast.error("Failed to load fees")
+      if (res.status !== 1 || !Array.isArray(res.result)) {
+        toast.error("Failed to load fees or data format is incorrect.")
+        setFees([])
         return
       }
 
-      const parsedFees: FeeStructure[] = data.result.map((fee: any) => ({
-        ...fee,
-        tuition_fee: parseFloat(fee.tuition_fee),
-        annual_fee: parseFloat(fee.annual_fee),
-        total_fee: parseFloat(fee.total_fee),
-        q1: parseFloat(fee.q1),
-        q2: parseFloat(fee.q2),
-        q3: parseFloat(fee.q3),
-        q4: fee.q4 !== null ? parseFloat(fee.q4) : null,
-      }))
+      // Helper: safely parse strings/numbers/null → number|null
+      const parseNumber = (value: any): number | null => {
+        if (value === null || value === undefined) return null
+        const num = parseFloat(value)
+        return isNaN(num) ? null : num
+      }
 
-      setFees(parsedFees)
+      const parsedFees: FeeStructure[] = res.result
+        .filter((fee: any) => fee.class_name)
+        .map((fee: RawFeeStructure) => {
+          const coreServices: ServiceBreakdown[] = (Object.keys(CORE_LABELS) as Array<keyof typeof CORE_LABELS>)
+            .map((key) => ({
+              name: CORE_LABELS[key],
+              amount: parseNumber((fee as any)[key]) ?? 0,
+              category: "core" as const
+            }))
+          const optionalServices = parseOptionalServices(fee.additional_services)
+
+          return {
+            ...fee,
+            tuition_fee: parseNumber(fee.tuition_fee),
+            annual_fee: parseNumber(fee.annual_fee),
+            total_fee: parseNumber(fee.total_fee),
+            q1: parseNumber(fee.q1),
+            q2: parseNumber(fee.q2),
+            q3: parseNumber(fee.q3),
+            q4: parseNumber(fee.q4),
+            services: [...coreServices, ...optionalServices]
+          }
+        })
+
+      const overrides = loadOverrides()
+      const merged = applyOverrides(parsedFees, overrides)
+      setFees(merged)
     } catch (err) {
-      console.error(err)
-      toast.error("Error fetching fees")
+      console.error("Error in fetchFees:", err)
+      toast.error("Error fetching fees.")
       setFees([])
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (fee: FeeStructure) => {
-    setEditingFee(fee)
-    setFormData(fee)
-    setDialogOpen(true)
-  }
-
-  const handleAddNew = () => {
-    setEditingFee(null)
-    setFormData({})
-    setDialogOpen(true)
-  }
-
-  // const handleSave = async () => {
-  //   setIsSaving(true)
-  //   try {
-  //     if (!formData.class_name) {
-  //       toast.error("Class name is required")
-  //       setIsSaving(false)
-  //       return
-  //     }
-
-  //     // numeric validation (allow 0 but not undefined/null)
-  //     const requiredNumbers = ["tuition_fee", "annual_fee", "total_fee", "q1", "q2", "q3"]
-  //     for (const field of requiredNumbers) {
-  //       const value = (formData as any)[field]
-  //       if (value === undefined || value === null || isNaN(value)) {
-  //         toast.error(`${field} is required and must be a number`)
-  //         setIsSaving(false)
-  //         return
-  //       }
-  //     }
-
-  //     let res: Response
-  //     if (editingFee?.id) {
-  //       res = await api.updateFeesStructure(editingFee.id, formData)
-  //     } else {
-  //       res = await api.postFeesStructure({ ...formData, school_id: 1 }) // TODO: replace with actual school_id
-  //     }
-
-  //     const data = await res.json()
-  //     if (data.status === 1 || data.success) {
-  //       toast.success(`Fee ${editingFee ? "updated" : "added"} successfully!`)
-  //       setDialogOpen(false)
-  //       fetchFees()
-  //     } else {
-  //       toast.error(`Failed to ${editingFee ? "update" : "add"} fee.`)
-  //     }
-  //   } catch (err) {
-  //     console.error(err)
-  //     toast.error("Error saving fee.")
-  //   } finally {
-  //     setIsSaving(false)
-  //   }
-  // }  
+  const totalByCategory = useMemo(() => {
+    return fees.reduce(
+      (acc, fee) => {
+        fee.services.forEach((service) => {
+          acc[service.category] = (acc[service.category] || 0) + service.amount
+        })
+        return acc
+      },
+      {} as Record<ServiceBreakdown["category"], number>
+    )
+  }, [fees])
 
   return (
     <div className="container mx-auto py-10 px-4 max-w-7xl">
@@ -133,12 +132,10 @@ export default function FeesStructureManagement() {
         <h1 className="text-4xl font-extrabold tracking-tight">
           Fees Structure
         </h1>
-        <Button
-          onClick={handleAddNew}
-          className="hover:bg-blue-700 text-white shadow-lg transition-transform hover:scale-105"
-        >
-          + Add New Fee
-        </Button>
+        <div className="text-sm text-muted-foreground">
+          <p>Total Core Fees: <span className="font-semibold">₹{(totalByCategory.core || 0).toLocaleString()}</span></p>
+          <p>Additional Services: <span className="font-semibold">₹{(totalByCategory.service || 0).toLocaleString()}</span></p>
+        </div>
       </div>
 
       <Card className="shadow-lg">
@@ -154,11 +151,11 @@ export default function FeesStructureManagement() {
                   <TableHead className="text-right">Tuition Fee</TableHead>
                   <TableHead className="text-right">Annual Fee</TableHead>
                   <TableHead className="text-right">Total Fee</TableHead>
+                  <TableHead>Services Included</TableHead>
                   <TableHead className="text-right">Q1</TableHead>
                   <TableHead className="text-right">Q2</TableHead>
                   <TableHead className="text-right">Q3</TableHead>
                   <TableHead className="text-right">Q4</TableHead>
-                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -173,28 +170,37 @@ export default function FeesStructureManagement() {
                   </TableRow>
                 ) : fees.length > 0 ? (
                   fees.map(fee => (
-                    <TableRow
-                      key={fee.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
-                      onClick={() => handleEdit(fee)}
-                    >
+                    <TableRow key={fee.id}>
                       <TableCell>{fee.class_name}</TableCell>
-                      <TableCell className="text-right">₹{fee.tuition_fee.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{fee.annual_fee.toLocaleString()}</TableCell>
-                      <TableCell className="text-right font-bold text-blue-600">₹{fee.total_fee.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{fee.q1.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{fee.q2.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">₹{fee.q3.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{fee.q4.toLocaleString() ?? ""}</TableCell>
+                      <TableCell className="text-right">
+                        {fee.tuition_fee !== null ? `₹${fee.tuition_fee.toLocaleString()}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fee.annual_fee !== null ? `₹${fee.annual_fee.toLocaleString()}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-blue-600">
+                        {fee.total_fee !== null ? `₹${fee.total_fee.toLocaleString()}` : "-"}
+                      </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => { e.stopPropagation(); handleEdit(fee) }}
-                          className="text-blue-600 hover:bg-blue-100"
-                        >
-                          Edit
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          {fee.services.map((service) => (
+                            <Badge key={`${fee.id}-${service.name}`} variant={service.category === "service" ? "outline" : "default"}>
+                              {service.name}: ₹{service.amount.toLocaleString()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fee.q1 !== null ? `₹${fee.q1.toLocaleString()}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fee.q2 !== null ? `₹${fee.q2.toLocaleString()}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fee.q3 !== null ? `₹${fee.q3.toLocaleString()}` : "-"}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {fee.q4 !== null ? `₹${fee.q4.toLocaleString()}` : "-"}
                       </TableCell>
                     </TableRow>
                   ))
@@ -211,42 +217,98 @@ export default function FeesStructureManagement() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{editingFee ? "Edit Fee" : "Add New Fee"}</DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-2">
-            <div className="col-span-full">
-              <Label htmlFor="class_name">Class Name</Label>
-              <Input
-                id="class_name"
-                value={formData.class_name || ""}
-                onChange={e => setFormData({ ...formData, class_name: e.target.value })}
-              />
-            </div>
-            {["tuition_fee", "annual_fee", "total_fee", "q1", "q2", "q3", "q4"].map((field, idx) => (
-              <div key={field} className={idx === 2 ? "col-span-full" : ""}>
-                <Label htmlFor={field}>{field.toUpperCase()}</Label>
-                <Input
-                  id={field}
-                  type="number"
-                  value={(formData as any)[field] ?? ""}
-                  onChange={e => setFormData({ ...formData, [field]: e.target.value ? Number(e.target.value) : null })}
-                />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>Cancel</Button>
-            {/* <Button onClick=({}) disabled={isSaving}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
-            </Button> */}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
+}
+
+function parseOptionalServices(raw: RawFeeStructure["additional_services"]): ServiceBreakdown[] {
+  if (!raw) return []
+  let data: any = raw
+  if (typeof raw === "string") {
+    try {
+      data = JSON.parse(raw)
+    } catch (error) {
+      console.warn("Failed to parse additional services JSON:", error)
+      return []
+    }
+  }
+  if (typeof data !== "object" || Array.isArray(data)) return []
+
+  return Object.entries(data).reduce<ServiceBreakdown[]>((acc, [key, value]) => {
+    const amount = typeof value === "number" ? value : parseFloat(value as any)
+    if (!isNaN(amount)) {
+      acc.push({
+        name: formatServiceName(key),
+        amount,
+        category: "service"
+      })
+    }
+    return acc
+  }, [])
+}
+
+function formatServiceName(key: string) {
+  return key
+    .replace(/[_-]/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function loadOverrides(): FeeOverride[] {
+  if (typeof window === "undefined") return []
+  try {
+    const stored = window.localStorage.getItem(FEES_OVERRIDES_KEY)
+    if (!stored) return []
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.warn("Unable to parse stored fee overrides:", error)
+    return []
+  }
+}
+
+function applyOverrides(fees: FeeStructure[], overrides: FeeOverride[]) {
+  if (!overrides.length) return fees
+  return fees.map((fee) => {
+    const override = overrides.find((item) => item.class_name === fee.class_name)
+    if (!override) return fee
+
+    const tuition = override.tuition_fee ?? fee.tuition_fee
+    const annual = override.annual_fee ?? fee.annual_fee
+    const overrideServices =
+      override.services?.map<ServiceBreakdown>((service) => ({
+        name: service.name,
+        amount: service.amount,
+        category: "service",
+      })) ?? fee.services.filter((service) => service.category === "service")
+
+    const total =
+      override.total_fee ??
+      (tuition ?? 0) +
+        (annual ?? 0) +
+        overrideServices.reduce((acc, service) => acc + (Number.isFinite(service.amount) ? service.amount : 0), 0)
+
+    return {
+      ...fee,
+      tuition_fee: tuition,
+      annual_fee: annual,
+      total_fee: total,
+      q1: override.q1 ?? fee.q1,
+      q2: override.q2 ?? fee.q2,
+      q3: override.q3 ?? fee.q3,
+      q4: override.q4 ?? fee.q4,
+      services: [
+        {
+          name: "Tuition",
+          amount: tuition ?? 0,
+          category: "core",
+        },
+        {
+          name: "Annual",
+          amount: annual ?? 0,
+          category: "core",
+        },
+        ...overrideServices,
+      ],
+    }
+  })
 }

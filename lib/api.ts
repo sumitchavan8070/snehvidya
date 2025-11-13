@@ -72,6 +72,13 @@ class ApiClient {
     })
   }
 
+  async changePassword(payload: { currentPassword: string; newPassword: string; confirmPassword: string }) {
+    return this.request("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    })
+  }
+
   async getStaffAttendance(date: string) {
 
     return this.request(`/attendance/get-attendance-by-user-and-date?date=${date}`)
