@@ -329,7 +329,7 @@ export default function AttendanceManagement() {
                 disabled={isSunday || !isAttendanceMarked || isLoading} // ✅ Disable on Sunday
                 className="bg-indigo-600 hover:bg-indigo-700 text-white transition-colors"
               >
-                Mark Attendance
+                Mark Bulk Attendance
               </Button>
             </div>
           </div>

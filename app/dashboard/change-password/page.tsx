@@ -146,7 +146,7 @@ export default function ChangePasswordPage() {
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-8 py-10 px-4">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 ">
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle className="text-2xl font-semibold">Change Password</CardTitle>
@@ -205,6 +205,14 @@ export default function ChangePasswordPage() {
           </CardContent>
         </Card>
 
+      </div>
+    </div>
+  )
+}
+
+
+// for the  forgot password  
+{/* 
         <Card className="shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -317,10 +325,4 @@ export default function ChangePasswordPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-
+        </Card> */}

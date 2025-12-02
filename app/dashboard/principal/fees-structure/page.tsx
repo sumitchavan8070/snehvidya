@@ -752,3 +752,4 @@ function formatCurrency(value: NullableNumber) {
   return `₹${Number(value).toLocaleString()}`
 }
 
+
