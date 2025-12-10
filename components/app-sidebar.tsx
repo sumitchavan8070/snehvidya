@@ -22,33 +22,40 @@ import { Button } from "@/components/ui/button"
 import { api } from "@/lib/api"
 
 import {
-  FaUsers,
-  FaCalendarAlt,
-  FaBookOpen,
-  FaCog,
-  FaSignOutAlt,
-  FaGraduationCap,
-  FaDollarSign,
-  FaFileAlt,
-  FaTh,
-  FaPersonBooth,
-  FaChevronDown,
-  FaChevronRight,
-  FaUser,
-  FaUserTie,
-  FaClipboardList,
-  FaClipboardCheck,
-  FaUserPlus,
-  FaUserGraduate,
-  FaChalkboardTeacher,
-  FaTasks,
-  FaMoneyBillWave,
-  FaReceipt,
-  FaRegListAlt,
-  FaCalendarTimes,
-  FaKey,  
-  FaUserLock
-} from "react-icons/fa"
+  LayoutDashboard,
+  Lock,
+  GraduationCap,
+  List,
+  UserPlus,
+  Briefcase,
+  Users,
+  ClipboardCheck,
+  DollarSign,
+  FileText,
+  User,
+  Settings,
+  Calendar,
+  UserCircle,
+  School,
+  ClipboardList,
+  CheckSquare,
+  CalendarX,
+  Wallet,
+  Receipt,
+  BookOpen,
+  LogOut,
+  ChevronDown,
+  ChevronRight,
+  Coins,
+  Monitor,
+  Calculator,
+  HeartHandshake,
+  Shield,
+  Library,
+  Stethoscope,
+  HelpCircle,
+  CheckCircle,
+} from "lucide-react"
 
 interface AppSidebarProps {
   user: any
@@ -64,7 +71,18 @@ interface MenuItem {
 export function AppSidebar({ user }: AppSidebarProps) {
   const router = useRouter()
   const [openMenus, setOpenMenus] = useState<string[]>([])
-  const userRole = user?.role?.name?.toLowerCase() || "guest"
+  
+  // Normalize role name - handle spaces, special characters, and case
+  const normalizeRole = (roleName: string): string => {
+    if (!roleName) return "guest"
+    return roleName
+      .toLowerCase()
+      .replace(/\s+/g, "-")  // Replace spaces with hyphens
+      .replace(/\//g, "-")  // Replace slashes with hyphens
+      .replace(/[^a-z0-9-]/g, "")  // Remove special characters
+  }
+  
+  const userRole = normalizeRole(user?.role?.name || "guest")
 
   const handleLogout = () => {
     api.clearToken()
@@ -85,12 +103,12 @@ export function AppSidebar({ user }: AppSidebarProps) {
       {
         title: "Dashboard",
         url: `/dashboard/${userRole}`,
-        icon: <FaTh className="h-4 w-4" />,
+        icon: <LayoutDashboard className="h-4 w-4" />,
       },
  {
   title: "Change Password",
   url: `/dashboard/change-password`,
-  icon: <FaUserLock className="h-4 w-4" />,
+  icon: <Lock className="h-4 w-4" />,
 }
     ]
 
@@ -101,75 +119,149 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
           {
             title: "Students",
-            icon: <FaGraduationCap className="h-4 w-4" />,
+            icon: <GraduationCap className="h-4 w-4" />,
             children: [
-              { title: "Student List", url: "/dashboard/admin/students", icon: <FaRegListAlt className="h-4 w-4" /> },
-              { title: "Add Student", url: "/dashboard/admin/students/add", icon: <FaUserPlus className="h-4 w-4" /> },
+              { title: "Student List", url: "/dashboard/admin/students", icon: <List className="h-4 w-4" /> },
+              { title: "Add Student", url: "/dashboard/admin/students/add", icon: <UserPlus className="h-4 w-4" /> },
             ],
           },
 
           {
             title: "Staff",
-            icon: <FaUserTie className="h-4 w-4" />,
+            icon: <Briefcase className="h-4 w-4" />,
             children: [
-              { title: "Staff List", url: "/dashboard/admin/staff", icon: <FaUsers className="h-4 w-4" /> },
-              { title: "Add Staff", url: "/dashboard/admin/staff/add", icon: <FaUserPlus className="h-4 w-4" /> },
+              { title: "Staff List", url: "/dashboard/admin/staff", icon: <Users className="h-4 w-4" /> },
+              { title: "Add Staff", url: "/dashboard/admin/staff/add", icon: <UserPlus className="h-4 w-4" /> },
             ],
           },
 
-          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <FaClipboardCheck className="h-4 w-4" /> },
-          { title: "Registration", url: "/dashboard/registration", icon: <FaClipboardCheck className="h-4 w-4" /> },
-          { title: "Fees", url: "/dashboard/admin/fees", icon: <FaDollarSign className="h-4 w-4" /> },
-          { title: "Reports", url: "/dashboard/admin/reports", icon: <FaFileAlt className="h-4 w-4" /> },
-          { title: "Profile", url: "/dashboard/profile", icon: <FaUser className="h-4 w-4" /> },
-          { title: "Settings", url: "/dashboard/admin/settings", icon: <FaCog className="h-4 w-4" /> },
+          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <ClipboardCheck className="h-4 w-4" /> },
+          { title: "Registration", url: "/dashboard/registration", icon: <ClipboardCheck className="h-4 w-4" /> },
+          { title: "Fees", url: "/dashboard/admin/fees", icon: <DollarSign className="h-4 w-4" /> },
+          { title: "Reports", url: "/dashboard/admin/reports", icon: <FileText className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+          { title: "Settings", url: "/dashboard/admin/settings", icon: <Settings className="h-4 w-4" /> },
         ]
 
       case "principal":
         return [
           ...commonItems,
 
-          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <FaCalendarAlt className="h-4 w-4" /> },
-          { title: "Staff Directory", url: "/dashboard/principal/staff", icon: <FaUsers className="h-4 w-4" /> },
-          { title: "Fees Structure", url: "/dashboard/principal/fees-structure", icon: <FaDollarSign className="h-4 w-4" /> },
-          { title: "Profile", url: "/dashboard/profile", icon: <FaPersonBooth className="h-4 w-4" /> },
-          { title: "Settings", url: "/dashboard/principal/settings", icon: <FaCog className="h-4 w-4" /> },
+          { title: "Attendance", url: "/dashboard/principal/attendance", icon: <Calendar className="h-4 w-4" /> },
+          { title: "Staff Directory", url: "/dashboard/principal/staff", icon: <Users className="h-4 w-4" /> },
+          { title: "Fees Structure", url: "/dashboard/principal/fees-structure", icon: <DollarSign className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <UserCircle className="h-4 w-4" /> },
+          { title: "Settings", url: "/dashboard/principal/settings", icon: <Settings className="h-4 w-4" /> },
         ]
 
       case "teacher":
         return [
           ...commonItems,
 
-          { title: "My Classes", url: "/dashboard/teacher/classes", icon: <FaChalkboardTeacher className="h-4 w-4" /> },
-          { title: "Attendance", url: "/dashboard/attendance", icon: <FaClipboardList className="h-4 w-4" /> },
-          { title: "Timetable", url: "/dashboard/timetable", icon: <FaCalendarAlt className="h-4 w-4" /> },
-          { title: "Exam", url: "/dashboard/exam", icon: <FaFileAlt className="h-4 w-4" /> },
-          { title: "Assignments", url: "/dashboard/teacher/assignments", icon: <FaTasks className="h-4 w-4" /> },
-          { title: "Leaves", url: "/dashboard/teacher/leave", icon: <FaCalendarTimes className="h-4 w-4" /> },
+          // { title: "My Classes", url: "/dashboard/teacher/classes", icon: <School className="h-4 w-4" /> },
+          { title: "Attendance", url: "/dashboard/attendance", icon: <ClipboardList className="h-4 w-4" /> },
+          { title: "Timetable", url: "/dashboard/timetable", icon: <Calendar className="h-4 w-4" /> },
+          { title: "Exam", url: "/dashboard/exam", icon: <FileText className="h-4 w-4" /> },
+          { title: "Assignments", url: "/dashboard/teacher/assignments", icon: <CheckSquare className="h-4 w-4" /> },
+          { title: "Leaves", url: "/dashboard/teacher/leave", icon: <CalendarX className="h-4 w-4" /> },
 
           {
             title: "My Class Students",
-            icon: <FaUserGraduate className="h-4 w-4" />,
+            icon: <GraduationCap className="h-4 w-4" />,
             children: [
-              { title: "Students Fee Details", url: "/dashboard/teacher/students/fees", icon: <FaMoneyBillWave className="h-4 w-4" /> },
-              { title: "Manage Student Attendance", url: "/dashboard/teacher/students", icon: <FaClipboardCheck className="h-4 w-4" /> },
-              { title: "Fees Structure", url: "/dashboard/teacher/students/fees-structure", icon: <FaReceipt className="h-4 w-4" /> },
+              { title: "Students Fee Details", url: "/dashboard/teacher/students/fees", icon: <Wallet className="h-4 w-4" /> },
+              { title: "Manage Student Attendance", url: "/dashboard/teacher/students", icon: <ClipboardCheck className="h-4 w-4" /> },
+              { title: "Fees Structure", url: "/dashboard/teacher/students/fees-structure", icon: <Receipt className="h-4 w-4" /> },
             ],
           },
 
-          { title: "Profile", url: "/dashboard/profile", icon: <FaUser className="h-4 w-4" /> },
-          { title: "Support", url: "/dashboard/teacher/support", icon: <FaCalendarTimes className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+          { title: "Support", url: "/dashboard/teacher/support", icon: <CalendarX className="h-4 w-4" /> },
 
         ]
 
       case "student":
         return [
           ...commonItems,
-          { title: "My Subjects", url: "/dashboard/student/subjects", icon: <FaBookOpen className="h-4 w-4" /> },
-          { title: "Attendance", url: "/dashboard/attendance", icon: <FaClipboardCheck className="h-4 w-4" /> },
-          { title: "Assignments", url: "/dashboard/student/assignments", icon: <FaTasks className="h-4 w-4" /> },
-          { title: "Fees", url: "/dashboard/student/fees", icon: <FaDollarSign className="h-4 w-4" /> },
-          { title: "Profile", url: "/dashboard/profile", icon: <FaUser className="h-4 w-4" /> },
+          { title: "My Subjects", url: "/dashboard/student/subjects", icon: <BookOpen className="h-4 w-4" /> },
+          { title: "Exams", url: "/dashboard/student/exams", icon: <FileText className="h-4 w-4" /> },
+          { title: "Attendance", url: "/dashboard/attendance", icon: <ClipboardCheck className="h-4 w-4" /> },
+          { title: "Assignments", url: "/dashboard/student/assignments", icon: <CheckSquare className="h-4 w-4" /> },
+          { title: "Fees", url: "/dashboard/student/fees", icon: <Coins className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "it-admin":
+      case "itadmin":
+        return [
+          ...commonItems,
+          { title: "User Management", url: "/dashboard/it-admin/users", icon: <Users className="h-4 w-4" /> },
+          { title: "System Settings", url: "/dashboard/it-admin/settings", icon: <Settings className="h-4 w-4" /> },
+          { title: "System Logs", url: "/dashboard/it-admin/logs", icon: <FileText className="h-4 w-4" /> },
+          { title: "Backup & Restore", url: "/dashboard/it-admin/backup", icon: <Monitor className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "accountant":
+        return [
+          ...commonItems,
+          { title: "Fees Management", url: "/dashboard/accountant/fees", icon: <DollarSign className="h-4 w-4" /> },
+          { title: "Payments", url: "/dashboard/accountant/payments", icon: <Receipt className="h-4 w-4" /> },
+          { title: "Financial Reports", url: "/dashboard/accountant/reports", icon: <FileText className="h-4 w-4" /> },
+          { title: "Transactions", url: "/dashboard/accountant/transactions", icon: <Calculator className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "parent":
+        return [
+          ...commonItems,
+          { title: "My Children", url: "/dashboard/parent/children", icon: <GraduationCap className="h-4 w-4" /> },
+          { title: "Attendance", url: "/dashboard/parent/attendance", icon: <ClipboardCheck className="h-4 w-4" /> },
+          { title: "Grades & Exams", url: "/dashboard/parent/grades", icon: <FileText className="h-4 w-4" /> },
+          { title: "Fees & Payments", url: "/dashboard/parent/fees", icon: <Wallet className="h-4 w-4" /> },
+          { title: "Communications", url: "/dashboard/parent/messages", icon: <HelpCircle className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "support-staff":
+      case "supportstaff":
+        return [
+          ...commonItems,
+          { title: "Maintenance Requests", url: "/dashboard/support-staff/maintenance", icon: <Briefcase className="h-4 w-4" /> },
+          { title: "Facilities", url: "/dashboard/support-staff/facilities", icon: <School className="h-4 w-4" /> },
+          { title: "Tasks", url: "/dashboard/support-staff/tasks", icon: <CheckSquare className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "librarian":
+        return [
+          ...commonItems,
+          { title: "Books Catalog", url: "/dashboard/librarian/books", icon: <BookOpen className="h-4 w-4" /> },
+          { title: "Issued Books", url: "/dashboard/librarian/issued", icon: <List className="h-4 w-4" /> },
+          { title: "Return Books", url: "/dashboard/librarian/returns", icon: <CheckCircle className="h-4 w-4" /> },
+          { title: "Library Reports", url: "/dashboard/librarian/reports", icon: <FileText className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "nurse":
+      case "nurse-medical":
+      case "medical":
+        return [
+          ...commonItems,
+          { title: "Student Health Records", url: "/dashboard/nurse/health-records", icon: <Stethoscope className="h-4 w-4" /> },
+          { title: "Medical Appointments", url: "/dashboard/nurse/appointments", icon: <Calendar className="h-4 w-4" /> },
+          { title: "Medications", url: "/dashboard/nurse/medications", icon: <HeartHandshake className="h-4 w-4" /> },
+          { title: "Health Reports", url: "/dashboard/nurse/reports", icon: <FileText className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
+        ]
+
+      case "security":
+        return [
+          ...commonItems,
+          { title: "Visitor Management", url: "/dashboard/security/visitors", icon: <Users className="h-4 w-4" /> },
+          { title: "Entry/Exit Logs", url: "/dashboard/security/logs", icon: <ClipboardList className="h-4 w-4" /> },
+          { title: "Incident Reports", url: "/dashboard/security/incidents", icon: <FileText className="h-4 w-4" /> },
+          { title: "Profile", url: "/dashboard/profile", icon: <User className="h-4 w-4" /> },
         ]
 
       default:
@@ -220,8 +312,8 @@ export function AppSidebar({ user }: AppSidebarProps) {
                         </span>
 
                         {openMenus.includes(item.title) ?
-                          <FaChevronDown className="h-3 w-3" /> :
-                          <FaChevronRight className="h-3 w-3" />}
+                          <ChevronDown className="h-3 w-3" /> :
+                          <ChevronRight className="h-3 w-3" />}
                       </SidebarMenuButton>
 
                       {openMenus.includes(item.title) && (
@@ -267,7 +359,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
           onClick={handleLogout}
           className="w-full bg-destructive/10 text-destructive hover:bg-destructive/20"
         >
-          <FaSignOutAlt className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4" />
           Logout
         </Button>
       </SidebarFooter>

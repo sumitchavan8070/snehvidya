@@ -1,12 +1,133 @@
 "use client"
 
+import { useState, useEffect, useRef } from "react"
+import { format } from "date-fns"
+import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Users, GraduationCap, DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock } from "lucide-react"
-import DashboardLayout from "@/dashboard-layout" 
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import { Users, GraduationCap, DollarSign, Calendar, TrendingUp, AlertCircle, CheckCircle, Clock, Loader2, X } from "lucide-react"
+import { api } from "@/lib/api"
+import { cn } from "@/lib/utils" 
 
 export default function PrincipalDashboard() {
+  const [pendingLeaves, setPendingLeaves] = useState<any[]>([])
+  const [loadingLeaves, setLoadingLeaves] = useState(true)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const [selectedLeaveId, setSelectedLeaveId] = useState<number | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [userId, setUserId] = useState<number | null>(null)
+  const hasFetchedRef = useRef(false)
+
+  useEffect(() => {
+    // Get user ID from localStorage
+    const userStr = localStorage.getItem("user")
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      setUserId(user.id)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current || !userId) {
+      return
+    }
+
+    hasFetchedRef.current = true
+
+    const fetchPendingLeaves = async () => {
+      setLoadingLeaves(true)
+      try {
+        const res = await api.getPendingTeacherLeaves(userId)
+        if (res.status === 1) {
+          setPendingLeaves(res.data || [])
+        } else {
+          toast.error(res.message || "Failed to fetch pending leave requests.")
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to fetch pending leave requests.")
+      } finally {
+        setLoadingLeaves(false)
+      }
+    }
+
+    fetchPendingLeaves()
+  }, [userId])
+
+  const handleApprove = async (leaveId: number) => {
+    if (!userId) return
+
+    setActionLoading(leaveId)
+    try {
+      const res = await api.approveRejectTeacherLeave(leaveId, {
+        userId,
+        status: "approved",
+      })
+      if (res.status === 1) {
+        toast.success(res.message || "Leave approved successfully.")
+        // Remove the approved leave from the list
+        setPendingLeaves((prev) => prev.filter((leave) => leave.id !== leaveId))
+      } else {
+        toast.error(res.message || "Failed to approve leave.")
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred.")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const handleRejectClick = (leaveId: number) => {
+    setSelectedLeaveId(leaveId)
+    setRejectionReason("")
+    setDialogOpen(true)
+  }
+
+  const handleReject = async () => {
+    if (!selectedLeaveId || !userId) return
+
+    setActionLoading(selectedLeaveId)
+    try {
+      const res = await api.approveRejectTeacherLeave(selectedLeaveId, {
+        userId,
+        status: "rejected",
+        rejectionReason: rejectionReason || undefined,
+      })
+      if (res.status === 1) {
+        toast.success(res.message || "Leave rejected successfully.")
+        setDialogOpen(false)
+        // Remove the rejected leave from the list
+        setPendingLeaves((prev) => prev.filter((leave) => leave.id !== selectedLeaveId))
+      } else {
+        toast.error(res.message || "Failed to reject leave.")
+      }
+    } catch (error: any) {
+      toast.error(error.message || "An error occurred.")
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const calculateDays = (startDate: string, endDate: string) => {
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diffTime = Math.abs(end.getTime() - start.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    return diffDays
+  }
+
   const stats = [
     {
       title: "Total Staff",
@@ -35,33 +156,6 @@ export default function PrincipalDashboard() {
       change: "+1.2% from last week",
       icon: TrendingUp,
       color: "text-purple-600",
-    },
-  ]
-
-  const pendingLeaves = [
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      type: "Medical Leave",
-      duration: "3 days",
-      status: "pending",
-      date: "2024-01-15",
-    },
-    {
-      id: "2",
-      name: "Mike Chen",
-      type: "Casual Leave",
-      duration: "1 day",
-      status: "pending",
-      date: "2024-01-18",
-    },
-    {
-      id: "3",
-      name: "Emily Davis",
-      type: "Emergency Leave",
-      duration: "2 days",
-      status: "pending",
-      date: "2024-01-20",
     },
   ]
 
@@ -121,32 +215,81 @@ export default function PrincipalDashboard() {
                 <Calendar className="h-5 w-5" />
                 Pending Leave Requests
               </CardTitle>
-              <CardDescription>Review and approve staff leave applications</CardDescription>
+              <CardDescription>Review and approve teacher leave applications</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {pendingLeaves.map((leave) => (
-                  <div key={leave.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="space-y-1">
-                      <p className="font-medium">{leave.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {leave.type} • {leave.duration}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{leave.date}</p>
+              {loadingLeaves ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <p className="text-muted-foreground">Loading leave requests...</p>
+                </div>
+              ) : pendingLeaves.length > 0 ? (
+                <div className="space-y-4">
+                  {pendingLeaves.map((leave) => (
+                    <div key={leave.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                      <div className="space-y-1 flex-1">
+                        <p className="font-medium">{leave.staffName || leave.staffEmail}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {leave.leaveType} • {calculateDays(leave.startDate, leave.endDate)} day{calculateDays(leave.startDate, leave.endDate) > 1 ? 's' : ''}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(leave.startDate), "MMM d")} - {format(new Date(leave.endDate), "MMM d, yyyy")}
+                        </p>
+                        {leave.reason && (
+                          <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                            Reason: {leave.reason}
+                          </p>
+                        )}
+                        {leave.department && (
+                          <p className="text-xs text-muted-foreground">
+                            Department: {leave.department}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Applied: {format(new Date(leave.appliedDate), "MMM d, yyyy")}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleApprove(leave.id)}
+                          disabled={actionLoading === leave.id}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {actionLoading === leave.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Approve
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRejectClick(leave.id)}
+                          disabled={actionLoading === leave.id}
+                        >
+                          {actionLoading === leave.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <X className="h-4 w-4 mr-1" />
+                              Reject
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline">
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="outline">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No pending leave requests at this time.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -238,6 +381,45 @@ export default function PrincipalDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reject Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Leave Application</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this leave application (optional).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="rejectionReason">Rejection Reason</Label>
+              <Textarea
+                id="rejectionReason"
+                placeholder="Enter reason for rejection..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={4}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleReject} disabled={actionLoading !== null}>
+              {actionLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Rejecting...
+                </>
+              ) : (
+                "Reject Leave"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

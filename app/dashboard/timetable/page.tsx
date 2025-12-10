@@ -462,7 +462,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { toast } from "sonner"
 import {
   Table,
@@ -531,6 +531,7 @@ export default function TimetableManagement() {
   })
 
   const schoolId = 1 // Replace with actual school ID
+  const hasFetchedRef = useRef(false)
 
   // --- Fetch all data ---
   const fetchAllData = async () => {
@@ -589,6 +590,12 @@ if (timetableData.status === 1) {
   }
 
   useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current) {
+      return
+    }
+
+    hasFetchedRef.current = true
     fetchAllData()
   }, [])
 

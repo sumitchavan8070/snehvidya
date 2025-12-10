@@ -1,32 +1,38 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, BookOpen, Calendar, CheckCircle } from "lucide-react"
+import { Users, BookOpen, Calendar, CheckCircle, ClipboardList, FileText, CheckSquare, HelpCircle } from "lucide-react"
 import { api } from "@/lib/api"
 
 export default function TeacherDashboard() {
-  // const [stats, setStats] = useState<any>(null)
-  // const [isLoading, setIsLoading] = useState(true)
+  const [announcements, setAnnouncements] = useState<any[]>([])
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true)
+  const hasFetchedRef = useRef(false)
 
-  // useEffect(() => {
-  //   const fetchStats = async () => {
-  //     try {
-  //       const data = await api.getDashboardStats()
-  //       setStats(data)
-  //     } catch (error) {
-  //       console.error("Failed to fetch stats:", error)
-  //     } finally {
-  //       setIsLoading(false)
-  //     }
-  //   }
+  useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current) {
+      return
+    }
 
-  //   fetchStats()
-  // }, [])
+    hasFetchedRef.current = true
 
-  // if (isLoading) {
-  //   return <div>Loading dashboard...</div>
-  // }
+    const fetchAnnouncements = async () => {
+      try {
+        const data = await api.getAnnouncements()
+        setAnnouncements(Array.isArray(data) ? data : (data?.data || data?.announcements || []))
+      } catch (error) {
+        console.error("Failed to fetch announcements:", error)
+        setAnnouncements([])
+      } finally {
+        setIsLoadingAnnouncements(false)
+      }
+    }
+
+    fetchAnnouncements()
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -126,56 +132,109 @@ export default function TeacherDashboard() {
             <CardDescription>Common teacher tasks</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-2">
-            <a href="/dashboard/teacher/attendance" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
-              Mark Attendance
-            </a>
-            <a href="/dashboard/teacher/assignments" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
-              Create Assignment
-            </a>
-            <a href="/dashboard/teacher/assignments" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
-              Grade Assignments
-            </a>
-            <a href="/dashboard/teacher/support" className="flex items-center justify-start p-2 text-sm border rounded hover:bg-gray-50">
-              Contact Support
-            </a>
+            <Link 
+              href="/dashboard/teacher/students" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Mark Student Attendance</span>
+            </Link>
+            <Link 
+              href="/dashboard/attendance" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">My Attendance</span>
+            </Link>
+            <Link 
+              href="/dashboard/teacher/assignments" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Create Assignment</span>
+            </Link>
+            <Link 
+              href="/dashboard/teacher/assignments" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Grade Assignments</span>
+            </Link>
+            <Link 
+              href="/dashboard/teacher/support" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <HelpCircle className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Contact Support</span>
+            </Link>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Announcements</CardTitle>
             <CardDescription>Latest from school administration</CardDescription>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start justify-between gap-4 p-3 border rounded">
-                <div>
-                  <p className="font-medium">PTM scheduled next Friday</p>
-                  <p className="text-muted-foreground">Parent-Teacher meeting for Grades 9–12</p>
-                </div>
-                <span className="text-xs text-gray-500">Nov 10</span>
-              </li>
-              <li className="flex items-start justify-between gap-4 p-3 border rounded">
-                <div>
-                  <p className="font-medium">Unit Test timetable published</p>
-                  <p className="text-muted-foreground">Check exam section for your subjects</p>
-                </div>
-                <span className="text-xs text-gray-500">Nov 8</span>
-              </li>
-              <li className="flex items-start justify-between gap-4 p-3 border rounded">
-                <div>
-                  <p className="font-medium">Staff meeting at 4 PM</p>
-                  <p className="text-muted-foreground">Briefing in auditorium</p>
-                </div>
-                <span className="text-xs text-gray-500">Today</span>
-              </li>
-            </ul>
+            {isLoadingAnnouncements ? (
+              <div className="text-sm text-muted-foreground">Loading announcements...</div>
+            ) : announcements.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No announcements available</div>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {announcements.map((announcement: any) => {
+                  const postedDate = announcement.postedOn 
+                    ? new Date(announcement.postedOn).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                      })
+                    : ''
+                  
+                  const postedBy = announcement.postedBy?.username || announcement.postedBy?.email || 'Admin'
+                  
+                  return (
+                    <li key={announcement.id} className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <p className="font-semibold text-base mb-1">{announcement.title}</p>
+                            <p className="text-muted-foreground text-sm leading-relaxed">{announcement.message}</p>
+                          </div>
+                          {postedDate && (
+                            <span className="text-xs text-gray-500 whitespace-nowrap">{postedDate}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 pt-2 border-t text-xs text-gray-500">
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium">Posted by:</span>
+                            <span>{postedBy}</span>
+                          </div>
+                          {announcement.audience && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">Audience:</span>
+                              <span className="capitalize">{announcement.audience}</span>
+                            </div>
+                          )}
+                          {announcement.schoolName && (
+                            <div className="flex items-center gap-1">
+                              <span className="font-medium">School:</span>
+                              <span>{announcement.schoolName}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        {/* <Card>
           <CardHeader>
             <CardTitle>Pending Reviews</CardTitle>
             <CardDescription>Assignments awaiting your attention</CardDescription>
@@ -205,7 +264,7 @@ export default function TeacherDashboard() {
               </div>
             </div>
           </CardContent>
-        </Card>
+        </Card> */}
       </div>
     </div>
   )

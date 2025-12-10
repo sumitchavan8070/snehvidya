@@ -72,16 +72,37 @@ export default function FeesStructureManagement() {
         return
       }
 
-      const parsedFees: FeeStructure[] = res.result.map((fee: any) => ({
-        ...fee,
-        tuition_fee: parseFloat(fee.tuition_fee),
-        annual_fee: parseFloat(fee.annual_fee),
-        total_fee: parseFloat(fee.total_fee),
-        q1: parseFloat(fee.q1),
-        q2: parseFloat(fee.q2),
-        q3: parseFloat(fee.q3),
-        q4:  parseFloat(fee.q4),
-      }))
+      const parsedFees: FeeStructure[] = res.result.map((fee: any) => {
+        const tuitionFee = parseFloat(fee.tuition_fee) || 0
+        const annualFee = parseFloat(fee.annual_fee) || 0
+        const additionalServices = parseOptionalServices(fee.additional_services)
+        
+        const services: ServiceBreakdown[] = [
+          {
+            name: "Tuition",
+            amount: tuitionFee,
+            category: "core",
+          },
+          {
+            name: "Annual",
+            amount: annualFee,
+            category: "core",
+          },
+          ...additionalServices,
+        ]
+
+        return {
+          ...fee,
+          tuition_fee: tuitionFee || null,
+          annual_fee: annualFee || null,
+          total_fee: parseFloat(fee.total_fee),
+          q1: parseFloat(fee.q1),
+          q2: parseFloat(fee.q2),
+          q3: parseFloat(fee.q3),
+          q4: parseFloat(fee.q4),
+          services,
+        }
+      })
 
       setFees(parsedFees)
     } catch (err) {
@@ -96,9 +117,11 @@ export default function FeesStructureManagement() {
   const totalByCategory = useMemo(() => {
     return fees.reduce(
       (acc, fee) => {
-        fee.services.forEach((service) => {
-          acc[service.category] = (acc[service.category] || 0) + service.amount
-        })
+        if (fee.services && Array.isArray(fee.services)) {
+          fee.services.forEach((service) => {
+            acc[service.category] = (acc[service.category] || 0) + service.amount
+          })
+        }
         return acc
       },
       {} as Record<ServiceBreakdown["category"], number>

@@ -71,8 +71,13 @@ export default function AttendanceManagement() {
 
     const fetchData = async () => {
       setIsLoading(true);
+      // Clear students and stats before fetching new data to prevent stale data
+      setStudents([]);
+      setAttendanceStats({ total: 0, present: 0, absent: 0, leave: 0, rate: 0 });
+      
       try {
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
+        console.log("Fetching students for date:", formattedDate);
         const res = await api.getClassStudents(formattedDate);
 
         if (res.status !== 1 || !res.result) {
@@ -168,12 +173,16 @@ export default function AttendanceManagement() {
 
   const markAttendance = async () => {
     if (isSunday) return; // ✅ Prevent action on Sunday
-    const today = format(selectedDate, "yyyy-MM-dd");
+    
+    // Ensure we use the selected date, not today's date
+    const attendanceDate = format(selectedDate, "yyyy-MM-dd");
+    
+    // Validate that all students have the correct attendance date
     const attendanceList = students
       .filter((s) => s.status)
       .map((s) => ({
         student_id: s.id,
-        date: today,
+        date: attendanceDate, // Use the selected date explicitly
         status: s.status,
         remarks: s.remarks || null,
       }));
@@ -182,8 +191,33 @@ export default function AttendanceManagement() {
       toast.info("No attendance to mark. Please select at least one student's status.");
       return;
     }
-      const rec = {records : attendanceList}; 
-      console.log(rec);
+    
+    // Log for debugging - verify the date being sent
+    console.log("=== FRONTEND: MARKING BULK ATTENDANCE ===");
+    console.log("Selected Date:", selectedDate);
+    console.log("Formatted Date (yyyy-MM-dd):", attendanceDate);
+    console.log("Number of students to mark:", attendanceList.length);
+    console.log("Attendance records breakdown:");
+    attendanceList.forEach((record, index) => {
+      console.log(`  Record ${index + 1}:`, {
+        student_id: record.student_id,
+        date: record.date,
+        status: record.status,
+        remarks: record.remarks
+      });
+    });
+    
+    // Verify all records have the same date
+    const uniqueDates = [...new Set(attendanceList.map(r => r.date))];
+    if (uniqueDates.length > 1) {
+      console.warn("⚠️ WARNING: Multiple dates found in attendance records!", uniqueDates);
+    } else {
+      console.log("✅ All records have the same date:", uniqueDates[0]);
+    }
+    
+    const rec = {records : attendanceList}; 
+    console.log("Final payload being sent:", JSON.stringify(rec, null, 2));
+    console.log("==========================================");
 
     try {
       const res = await api.markBulkAttendance({ records: attendanceList });
@@ -192,7 +226,7 @@ export default function AttendanceManagement() {
         alert("cant perform action buil attedance");
       }
       if (res.status === 1) {
-        toast.success(res.message || "Attendance marked successfully");
+        toast.success(res.message || `Attendance marked successfully for ${format(selectedDate, "PPP")}`);
         window.location.reload(); // Reload the page on success
       } 
     } catch (error) {
@@ -208,16 +242,21 @@ export default function AttendanceManagement() {
       return;
     }
 
+    // Ensure we use the selected date, not the student's stored date
+    const attendanceDate = format(selectedDate, "yyyy-MM-dd");
+    
+    console.log(`Updating attendance for ${student.name} on date: ${attendanceDate}`);
+
     try {
       const res = await api.markAttendance({
         student_id: student.id,
-        date: format(selectedDate, "yyyy-MM-dd"),
+        date: attendanceDate, // Use the selected date explicitly
         status: student.status,
         remarks: student.remarks,
       });
 
       if (res.status === 1) {
-        toast.success(`Attendance updated for ${student.name}`);
+        toast.success(`Attendance updated for ${student.name} on ${format(selectedDate, "PPP")}`);
         window.location.reload(); // Reload the page on success
       } else {
         toast.error(`Failed to update ${student.name}`);

@@ -143,8 +143,18 @@ export default function LoginPage() {
 
         toast.success("Login successful!")
 
-        const role = response.user?.role?.name?.toLowerCase()
-        router.push(`/dashboard/${role || "admin"}`)
+        // Normalize role name - handle spaces, special characters, and case
+        const normalizeRole = (roleName: string): string => {
+          if (!roleName) return "admin"
+          return roleName
+            .toLowerCase()
+            .replace(/\s+/g, "-")  // Replace spaces with hyphens
+            .replace(/\//g, "-")  // Replace slashes with hyphens
+            .replace(/[^a-z0-9-]/g, "")  // Remove special characters
+        }
+        
+        const role = normalizeRole(response.user?.role?.name || "admin")
+        router.push(`/dashboard/${role}`)
       }
     } catch (error) {
       console.error("Login error:", error)

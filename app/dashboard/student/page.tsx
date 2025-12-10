@@ -1,15 +1,24 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Calendar, Trophy, Clock } from "lucide-react"
+import { BookOpen, Calendar, Trophy, Clock, FileText } from "lucide-react"
+import Link from "next/link"
 import { api } from "@/lib/api"
 
 export default function StudentDashboard() {
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const hasFetchedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current) {
+      return
+    }
+
+    hasFetchedRef.current = true
+
     const fetchStats = async () => {
       try {
         const data = await api.getDashboardStats()
@@ -122,33 +131,31 @@ export default function StudentDashboard() {
 
         <Card className="col-span-3">
           <CardHeader>
-            <CardTitle>Upcoming Assignments</CardTitle>
-            <CardDescription>Due this week</CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Common tasks</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-2 border rounded">
-                <div>
-                  <p className="text-sm font-medium">Math Homework</p>
-                  <p className="text-xs text-muted-foreground">Due: Tomorrow</p>
-                </div>
-                <span className="text-red-600 text-xs">High</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border rounded">
-                <div>
-                  <p className="text-sm font-medium">Physics Lab Report</p>
-                  <p className="text-xs text-muted-foreground">Due: Friday</p>
-                </div>
-                <span className="text-yellow-600 text-xs">Medium</span>
-              </div>
-              <div className="flex items-center justify-between p-2 border rounded">
-                <div>
-                  <p className="text-sm font-medium">History Essay</p>
-                  <p className="text-xs text-muted-foreground">Due: Next Week</p>
-                </div>
-                <span className="text-green-600 text-xs">Low</span>
-              </div>
-            </div>
+          <CardContent className="grid gap-2">
+            <Link 
+              href="/dashboard/student/exams" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">My Exams</span>
+            </Link>
+            <Link 
+              href="/dashboard/student/assignments" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <BookOpen className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Assignments</span>
+            </Link>
+            <Link 
+              href="/dashboard/attendance" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Attendance</span>
+            </Link>
           </CardContent>
         </Card>
       </div>

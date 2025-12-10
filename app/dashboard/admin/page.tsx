@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, GraduationCap, Calendar, DollarSign } from "lucide-react"
 import { api } from "@/lib/api"
@@ -8,8 +8,16 @@ import { api } from "@/lib/api"
 export default function AdminDashboard() {
   const [stats, setStats] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const hasFetchedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current) {
+      return
+    }
+
+    hasFetchedRef.current = true
+
     const fetchStats = async () => {
       try {
         const data = await api.getDashboardStats()

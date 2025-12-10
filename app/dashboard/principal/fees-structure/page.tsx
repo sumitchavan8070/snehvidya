@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -132,8 +132,15 @@ export default function PrincipalFeesStructure() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [formState, setFormState] = useState<FormState | null>(null)
+  const hasFetchedRef = useRef(false)
 
   useEffect(() => {
+    // Prevent duplicate API calls in React Strict Mode
+    if (hasFetchedRef.current) {
+      return
+    }
+
+    hasFetchedRef.current = true
     const stored = loadOverrides()
     setOverrides(stored)
     fetchFees()
