@@ -48,6 +48,7 @@ import {
   ChevronRight,
   Coins,
   Monitor,
+  Bus,
   Calculator,
   HeartHandshake,
   Shield,
@@ -149,6 +150,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
 
           { title: "Attendance", url: "/dashboard/principal/attendance", icon: <Calendar className="h-4 w-4" /> },
           { title: "Staff Directory", url: "/dashboard/principal/staff", icon: <Users className="h-4 w-4" /> },
+          { title: "Classes Management", url: "/dashboard/principal/classes", icon: <School className="h-4 w-4" /> },
           { title: "Fees Structure", url: "/dashboard/principal/fees-structure", icon: <DollarSign className="h-4 w-4" /> },
           { title: "Profile", url: "/dashboard/profile", icon: <UserCircle className="h-4 w-4" /> },
           { title: "Settings", url: "/dashboard/principal/settings", icon: <Settings className="h-4 w-4" /> },
@@ -172,6 +174,7 @@ export function AppSidebar({ user }: AppSidebarProps) {
               { title: "Students Fee Details", url: "/dashboard/teacher/students/fees", icon: <Wallet className="h-4 w-4" /> },
               { title: "Manage Student Attendance", url: "/dashboard/teacher/students", icon: <ClipboardCheck className="h-4 w-4" /> },
               { title: "Fees Structure", url: "/dashboard/teacher/students/fees-structure", icon: <Receipt className="h-4 w-4" /> },
+              { title: "Student Services", url: "/dashboard/teacher/students/services", icon: <Bus className="h-4 w-4" /> },
             ],
           },
 

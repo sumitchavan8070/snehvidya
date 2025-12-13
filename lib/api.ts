@@ -148,8 +148,23 @@ class ApiClient {
 
 
   // Users endpoints
-  async getUsers() {
-    return this.request("/users")
+  async getUsers(params?: {
+    role?: string
+    department?: string
+    search?: string
+    page?: number
+    limit?: number
+  }) {
+    const queryParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          queryParams.append(key, value.toString())
+        }
+      })
+    }
+    const queryString = queryParams.toString()
+    return this.request(`/users${queryString ? `?${queryString}` : ""}`)
   }
 
   async createUser(userData: any) {
@@ -190,9 +205,167 @@ class ApiClient {
     return this.request("/class/get-fees-list-by-class-teacher")
   }
 
-  getFeesStructure(){
-    return this.request("/fees-structure")
+  async getFeesStructure(){
+    // Use backend API endpoint
+    return this.request("/fees-structure", {
+      method: "GET",
+    })
+  }
 
+  async createFeesStructure(feesData: any) {
+    // Use backend API endpoint
+    return this.request("/fees-structure", {
+      method: "POST",
+      body: JSON.stringify(feesData),
+    })
+  }
+
+  async updateFeesStructure(schoolId: number, id: number, feesData: any) {
+    // Use backend API endpoint - PATCH /mobileapi/v1/fees-structure/:school_id/:id
+    return this.request(`/fees-structure/${schoolId}/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(feesData),
+    })
+  }
+
+  async deleteFeesStructure(schoolId: number, id: number) {
+    // Note: Delete endpoint not in docs, but keeping for now
+    // You may need to add DELETE endpoint to backend
+    return this.request(`/fees-structure/${schoolId}/${id}`, {
+      method: "DELETE",
+    })
+  }
+
+  async getFeeServices() {
+    return fetch("/fees-structure/services", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    }).then(res => res.json())
+  }
+
+  async createFeeService(serviceData: any) {
+    return fetch("/fees-structure/services", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(serviceData),
+    }).then(res => res.json())
+  }
+
+  // Section Extra Fees endpoints
+  async getSectionExtraFees(params?: { class_name?: string; section?: string }) {
+    const queryParams = new URLSearchParams()
+    if (params?.class_name) queryParams.append("class_name", params.class_name)
+    if (params?.section) queryParams.append("section", params.section)
+    
+    const queryString = queryParams.toString()
+    return fetch(`/fees-structure/section-extra-fees${queryString ? `?${queryString}` : ""}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    }).then(res => res.json())
+  }
+
+  async createSectionExtraFee(feeData: any) {
+    return fetch("/fees-structure/section-extra-fees", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(feeData),
+    }).then(res => res.json())
+  }
+
+  async updateSectionExtraFee(id: number, feeData: any) {
+    return fetch(`/fees-structure/section-extra-fees/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(feeData),
+    }).then(res => res.json())
+  }
+
+  async deleteSectionExtraFee(id: number) {
+    return fetch(`/fees-structure/section-extra-fees/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }).then(res => res.json())
+  }
+
+  // Calculate quarters
+  async calculateQuarters(totalAmount: number, distributionType: "equal" | "custom" = "equal", customDistribution?: any) {
+    return fetch("/fees-structure/calculate-quarters", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        total_amount: totalAmount,
+        distribution_type: distributionType,
+        custom_distribution: customDistribution,
+      }),
+    }).then(res => res.json())
+  }
+
+  // Class-wise payments
+  async getClassWisePayments(params?: { class_name?: string; section?: string; quarter?: string; status?: string }) {
+    const queryParams = new URLSearchParams()
+    if (params?.class_name) queryParams.append("class_name", params.class_name)
+    if (params?.section) queryParams.append("section", params.section)
+    if (params?.quarter) queryParams.append("quarter", params.quarter)
+    if (params?.status) queryParams.append("status", params.status)
+    
+    const queryString = queryParams.toString()
+    return fetch(`/fees-structure/payments/class-wise${queryString ? `?${queryString}` : ""}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+    }).then(res => res.json())
+  }
+
+  // Student Services endpoints
+  async getStudentServices(params?: { studentId?: number; classId?: number; serviceName?: string; isActive?: boolean }) {
+    const queryParams = new URLSearchParams()
+    if (params?.studentId) queryParams.append("studentId", params.studentId.toString())
+    if (params?.classId) queryParams.append("classId", params.classId.toString())
+    if (params?.serviceName) queryParams.append("serviceName", params.serviceName)
+    if (params?.isActive !== undefined) queryParams.append("isActive", params.isActive.toString())
+    
+    const queryString = queryParams.toString()
+    return this.request(`/student-services${queryString ? `?${queryString}` : ""}`, {
+      method: "GET",
+    })
+  }
+
+  async createStudentService(serviceData: any) {
+    return this.request("/student-services", {
+      method: "POST",
+      body: JSON.stringify(serviceData),
+    })
+  }
+
+  async updateStudentService(id: number, serviceData: any) {
+    return this.request(`/student-services/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(serviceData),
+    })
+  }
+
+  async deleteStudentService(id: number) {
+    return this.request(`/student-services/${id}`, {
+      method: "DELETE",
+    })
   }
 
     getTimetable(){
@@ -407,6 +580,51 @@ class ApiClient {
     return this.request(`/leaves/staff/history${query}`)
   }
 
+  // Principal APIs - Dashboard
+  async getPrincipalDashboardStats() {
+    return this.request("/principal/dashboard/stats")
+  }
+
+  async getPrincipalRecentActivities(limit?: number) {
+    const query = limit ? `?limit=${limit}` : ""
+    return this.request(`/principal/dashboard/activities${query}`)
+  }
+
+  // Principal APIs - Class Management
+  async getPrincipalClasses() {
+    return this.request("/principal/classes")
+  }
+
+  async createPrincipalClass(data: {
+    className: string
+    grade: string
+    section?: string
+    capacity?: number
+    academicYear?: string
+  }) {
+    return this.request("/principal/classes", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getPrincipalTeachers() {
+    return this.request("/principal/teachers")
+  }
+
+  async assignTeacherToClass(classId: number, teacherId: number) {
+    return this.request(`/principal/classes/${classId}/assign-teacher`, {
+      method: "POST",
+      body: JSON.stringify({ teacherId }),
+    })
+  }
+
+  async unassignTeacherFromClass(classId: number) {
+    return this.request(`/principal/classes/${classId}/unassign-teacher`, {
+      method: "DELETE",
+    })
+  }
+
   // Principal APIs - Teacher Leaves
   async getPendingTeacherLeaves(userId: number) {
     return this.request(`/leaves/teacher/pending?userId=${userId}`)
@@ -423,6 +641,34 @@ class ApiClient {
     return this.request(`/leaves/teacher/${leaveId}/approve`, {
       method: "POST",
       body: JSON.stringify(data),
+    })
+  }
+
+  // Principal APIs - Attendance Management
+  async getPrincipalAttendanceStats(date?: string) {
+    const queryString = date ? `?date=${date}` : ""
+    return this.request(`/principal/attendance/stats${queryString}`)
+  }
+
+  async getPrincipalStaffAttendance(date: string, params?: { search?: string; department?: string }) {
+    const queryParams = new URLSearchParams({ date })
+    if (params?.search) queryParams.append("search", params.search)
+    if (params?.department) queryParams.append("department", params.department)
+    return this.request(`/principal/attendance/staff?${queryParams.toString()}`)
+  }
+
+  async getPrincipalStudentAttendanceByClass(date: string) {
+    return this.request(`/principal/attendance/students/class?date=${date}`)
+  }
+
+  async getPrincipalStudentAttendanceDetails(classId: string, date: string) {
+    return this.request(`/principal/attendance/students/class/${classId}?date=${date}`)
+  }
+
+  async exportPrincipalAttendanceReport(date: string, type: "staff" | "students" | "both") {
+    return this.request(`/principal/attendance/export?date=${date}&type=${type}`, {
+      method: "GET",
+      // Note: File download handling may need special responseType
     })
   }
 
