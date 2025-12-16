@@ -3,12 +3,35 @@
 import { useEffect, useState, useRef } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, BookOpen, Calendar, CheckCircle, ClipboardList, FileText, CheckSquare, HelpCircle } from "lucide-react"
+import { Users, BookOpen, Calendar, CheckCircle, ClipboardList, FileText, CheckSquare, HelpCircle, Loader2 } from "lucide-react"
 import { api } from "@/lib/api"
+import { format } from "date-fns"
+
+interface DashboardStats {
+  totalStudents: number
+  classesCount: number
+  subjectsCount: number
+  todayClassesCount: number
+  todayClasses: Array<{
+    id: number
+    classId: number
+    className: string
+    subjectId: number
+    subjectName: string
+    startTime: string
+    endTime: string
+    status: 'completed' | 'next' | 'upcoming'
+  }>
+  subjects: any[]
+}
 
 export default function TeacherDashboard() {
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
+  const [classes, setClasses] = useState<any[]>([])
+  const [subjects, setSubjects] = useState<any[]>([])
   const hasFetchedRef = useRef(false)
 
   useEffect(() => {
@@ -19,20 +42,86 @@ export default function TeacherDashboard() {
 
     hasFetchedRef.current = true
 
-    const fetchAnnouncements = async () => {
+    const fetchData = async () => {
       try {
-        const data = await api.getAnnouncements()
-        setAnnouncements(Array.isArray(data) ? data : (data?.data || data?.announcements || []))
+        // Fetch dashboard stats
+        setIsLoadingStats(true)
+        const statsData = await api.getTeacherDashboardStats()
+        setStats(statsData)
+
+        // Fetch classes and subjects for display
+        try {
+          const userStr = localStorage.getItem("user")
+          const user = userStr ? JSON.parse(userStr) : null
+          const schoolId = user?.school?.id || user?.schoolId || 1
+
+          // Fetch classes
+          const classRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://172.23.17.194:8080/api"}/classes?schoolId=${schoolId}`, {
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          })
+          const classData = await classRes.json()
+          if (classData.status === 1) {
+            setClasses(classData.data || [])
+          }
+
+          // Fetch subjects
+          const subjectRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://172.23.17.194:8080/api"}/subjects?schoolId=${schoolId}`, {
+            headers: {
+              "Authorization": `Bearer ${localStorage.getItem("token")}`,
+              "Content-Type": "application/json",
+            },
+          })
+          const subjectData = await subjectRes.json()
+          if (subjectData.status === 1) {
+            setSubjects(subjectData.data || [])
+          }
+        } catch (error) {
+          console.error("Error fetching classes/subjects:", error)
+        }
+
+        // Fetch announcements
+        const announcementData = await api.getAnnouncements()
+        setAnnouncements(Array.isArray(announcementData) ? announcementData : (announcementData?.data || announcementData?.announcements || []))
       } catch (error) {
-        console.error("Failed to fetch announcements:", error)
-        setAnnouncements([])
+        console.error("Failed to fetch data:", error)
       } finally {
         setIsLoadingAnnouncements(false)
+        setIsLoadingStats(false)
       }
     }
 
-    fetchAnnouncements()
+    fetchData()
   }, [])
+
+  const formatTime = (timeStr: string) => {
+    if (!timeStr) return ""
+    // Parse time string and format it
+    const match = timeStr.match(/(\d+):(\d+)/)
+    if (match) {
+      const hours = parseInt(match[1])
+      const minutes = match[2]
+      const period = hours >= 12 ? "PM" : "AM"
+      const displayHours = hours > 12 ? hours - 12 : hours === 0 ? 12 : hours
+      return `${displayHours}:${minutes} ${period}`
+    }
+    return timeStr
+  }
+
+  const getClassName = (classId: number) => {
+    const classItem = classes.find(c => c.id === classId)
+    return classItem?.name || classItem?.className || `Class ${classId}`
+  }
+
+  const getSubjectName = (subjectId: number) => {
+    const subjectItem = subjects.find(s => s.id === subjectId)
+    return subjectItem?.name || subjectItem?.subjectName || `Subject ${subjectId}`
+  }
+
+  const completedCount = stats?.todayClasses.filter(c => c.status === 'completed').length || 0
+  const upcomingCount = stats?.todayClasses.filter(c => c.status === 'upcoming' || c.status === 'next').length || 0
 
   return (
     <div className="space-y-6">
@@ -48,8 +137,14 @@ export default function TeacherDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">32</div>
-            <p className="text-xs text-muted-foreground">Across 2 classes</p>
+            {isLoadingStats ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.totalStudents || 0}</div>
+                <p className="text-xs text-muted-foreground">Across {stats?.classesCount || 0} {stats?.classesCount === 1 ? 'class' : 'classes'}</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -59,8 +154,18 @@ export default function TeacherDashboard() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">Mathematics, Physics, Chemistry</p>
+            {isLoadingStats ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.subjectsCount || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {subjects.length > 0 
+                    ? subjects.slice(0, 3).map(s => s.name || s.subjectName).join(", ")
+                    : "No subjects assigned"}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -70,8 +175,16 @@ export default function TeacherDashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
-            <p className="text-xs text-muted-foreground">2 completed, 2 upcoming</p>
+            {isLoadingStats ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats?.todayClassesCount || 0}</div>
+                <p className="text-xs text-muted-foreground">
+                  {completedCount} completed, {upcomingCount} upcoming
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -81,50 +194,14 @@ export default function TeacherDashboard() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
-            <p className="text-xs text-muted-foreground">Pending review</p>
+            <div className="text-2xl font-bold">-</div>
+            <p className="text-xs text-muted-foreground">Coming soon</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Today's Schedule</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 border rounded">
-                <div>
-                  <p className="font-medium">Mathematics - Grade 10A</p>
-                  <p className="text-sm text-muted-foreground">9:00 AM - 10:00 AM</p>
-                </div>
-                <span className="text-green-600 text-sm">Completed</span>
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded">
-                <div>
-                  <p className="font-medium">Physics - Grade 11B</p>
-                  <p className="text-sm text-muted-foreground">10:30 AM - 11:30 AM</p>
-                </div>
-                <span className="text-green-600 text-sm">Completed</span>
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded bg-blue-50">
-                <div>
-                  <p className="font-medium">Chemistry - Grade 12A</p>
-                  <p className="text-sm text-muted-foreground">2:00 PM - 3:00 PM</p>
-                </div>
-                <span className="text-blue-600 text-sm">Next</span>
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded">
-                <div>
-                  <p className="font-medium">Mathematics - Grade 11A</p>
-                  <p className="text-sm text-muted-foreground">3:30 PM - 4:30 PM</p>
-                </div>
-                <span className="text-gray-600 text-sm">Upcoming</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+     
 
         <Card className="col-span-3">
           <CardHeader>

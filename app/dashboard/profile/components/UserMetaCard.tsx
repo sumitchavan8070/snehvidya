@@ -9,9 +9,11 @@
   import { Label } from "@/components/ui/label";
   import { useModal } from "@/app/calender/component/useModal";
   import { Modal } from "@/app/calender/modal";
+  import { api } from "@/lib/api";
 
   interface User {
     id: number;
+    username?: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -21,6 +23,8 @@
     cityState?: string;
     postalCode?: string;
     taxId?: string;
+    profileImageUrl?: string;
+    profile_image?: string;
     role: {
       id: number;
       name: string;
@@ -74,9 +78,12 @@
     const [user, setUser] = useState<User | null>(null);
     const [formData, setFormData] = useState<User | null>(null);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
+    const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
+      // Load basic user information from localStorage (existing behaviour)
       try {
         const rawUser = localStorage.getItem("user");
         let parsedUser: User;
@@ -106,6 +113,25 @@
         setFormData(dummyUser);
         setIsDataLoaded(true);
       }
+
+      // Fetch server-side profile (including profile image URL) using mobile API
+      const fetchProfile = async () => {
+        try {
+          const res: any = await api.getClientProfile();
+          const profile = res?.profile;
+          if (profile) {
+            const imageUrl =
+              profile.profileImageUrl || profile.profile_image || null;
+            if (imageUrl) {
+              setProfileImageUrl(imageUrl);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch client profile:", error);
+        }
+      };
+
+      fetchProfile();
     }, []);
 
     const handleSave = (e: React.FormEvent) => {
@@ -115,6 +141,64 @@
         localStorage.setItem("user", JSON.stringify(formData));
         toast.success("Profile updated successfully!");
         closeModal();
+      }
+    };
+
+    const handleProfileImageChange = async (
+      e: React.ChangeEvent<HTMLInputElement>,
+    ) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Basic validations as per docs
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Invalid file type. Please upload an image (jpeg, png, gif, webp).");
+        return;
+      }
+
+      const maxSizeBytes = 5 * 1024 * 1024; // 5 MB
+      if (file.size > maxSizeBytes) {
+        toast.error("File too large. Maximum size is 5 MB.");
+        return;
+      }
+
+      try {
+        setIsUploadingImage(true);
+        const form = new FormData();
+        form.append("profile_image", file);
+
+        // Optionally include some basic fields if available
+        if (user?.username) form.append("username", user.username);
+        if (user?.email) form.append("email", user.email);
+
+        const res: any = await api.updateClientProfile(form);
+
+        const profile = res?.profile;
+        const imageUrl =
+          profile?.profileImageUrl || profile?.profile_image || null;
+
+        if (imageUrl) {
+          setProfileImageUrl(imageUrl);
+        }
+
+        toast.success("Profile picture updated successfully.");
+      } catch (error: any) {
+        console.error("Failed to upload profile image:", error);
+        toast.error(
+          error?.message || "Failed to upload profile picture. Please try again.",
+        );
+      } finally {
+        setIsUploadingImage(false);
+        // reset the file input so same file can be selected again if needed
+        e.target.value = "";
       }
     };
 
@@ -142,19 +226,55 @@
           {/* Profile Header */}
         <div className="relative p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between">
     <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-      <div className="w-24 h-24 overflow-hidden border-4 border-indigo-500 dark:border-indigo-400 rounded-full shadow-lg">
-        {(() => {
-          const initials = `${user.firstName?.[0] || 'J'}${user.lastName?.[0] || 'D'}`.toUpperCase();
-          return (
-            <Image
-              width={96}
-              height={96}
-              src={`https://placehold.co/96x96/6366F1/FFFFFF?text=${initials}`}
-              alt="user profile"
-              className="object-cover w-full h-full"
-            />
-          );
-        })()}
+      <div className="relative w-24 h-24 overflow-hidden border-4 border-indigo-500 dark:border-indigo-400 rounded-full shadow-lg">
+        {profileImageUrl ? (
+          <Image
+            width={96}
+            height={96}
+            src={profileImageUrl}
+            alt="user profile"
+            className="object-cover w-full h-full"
+          />
+        ) : (
+          (() => {
+            const initials = `${user.firstName?.[0] || "J"}${
+              user.lastName?.[0] || "D"
+            }`.toUpperCase();
+            return (
+              <Image
+                width={96}
+                height={96}
+                src={`https://placehold.co/96x96/6366F1/FFFFFF?text=${initials}`}
+                alt="user profile"
+                className="object-cover w-full h-full"
+              />
+            );
+          })()
+        )}
+        <label
+          className="absolute bottom-0 right-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs cursor-pointer shadow-md hover:bg-indigo-700"
+          title="Change profile picture"
+        >
+          <input
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            className="hidden"
+            onChange={handleProfileImageChange}
+            disabled={isUploadingImage}
+          />
+          {isUploadingImage ? (
+            <span className="animate-spin">⏳</span>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M4 3a2 2 0 00-2 2v9a2 2 0 002 2h12a2 2 0 002-2V8.414a2 2 0 00-.586-1.414l-3.414-3.414A2 2 0 0012.586 3H4zm6 3a4 4 0 110 8 4 4 0 010-8z" />
+            </svg>
+          )}
+        </label>
       </div>
       <div className="text-center sm:text-left">
         <h4 className="text-2xl font-bold text-gray-900 dark:text-white">

@@ -30,9 +30,17 @@ class ApiClient {
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${this.baseURL}${endpoint}`
 
+    // Build headers, but handle FormData specially (no manual Content-Type)
     const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
+      Accept: "application/json",
+      ...(options.headers as Record<string, string> | undefined),
+    }
+
+    const isFormData =
+      typeof FormData !== "undefined" && options.body instanceof FormData
+
+    if (!isFormData) {
+      headers["Content-Type"] = headers["Content-Type"] || "application/json"
     }
 
     if (this.token) {
@@ -105,6 +113,21 @@ class ApiClient {
     return this.request("/auth/client-login", {
       method: "POST",
       body: JSON.stringify(credentials),
+    })
+  }
+
+  // Client profile (mobile API compatible) endpoints
+  async getClientProfile() {
+    // Backend: GET /mobileapi/v1/auth/get-client-profile
+    return this.request("/auth/get-client-profile")
+  }
+
+  async updateClientProfile(formData: FormData) {
+    // Backend: POST /mobileapi/v1/auth/update-client-profile
+    // Content-Type will be set automatically by the browser for FormData.
+    return this.request("/auth/update-client-profile", {
+      method: "POST",
+      body: formData,
     })
   }
 
@@ -370,11 +393,132 @@ class ApiClient {
 
     getTimetable(){
     return this.request("/timetable")
-
   }
 
   async getAnnouncements(){
     return this.request("/announcements/get-announcements")
+  }
+
+  // Teacher Dashboard endpoints
+  async getTeacherDashboardStats() {
+    try {
+      // Get today's date
+      const today = new Date().toISOString().split('T')[0]
+      
+      // Get students count from class students API
+      let totalStudents = 0
+      let classesCount = 0
+      let subjectsCount = 0
+      let todayClasses: any[] = []
+      const classIds = new Set()
+      const subjectsSet = new Set()
+
+      try {
+        const studentsRes = await this.getClassStudents(today)
+        if (studentsRes?.status === 1 && studentsRes?.result) {
+          totalStudents = studentsRes.totalStudents || studentsRes.result.length || 0
+        }
+      } catch (error) {
+        console.error("Error fetching students count:", error)
+      }
+
+      // Fetch timetable to get classes and subjects
+      try {
+        const timetableRes = await this.getTimetable()
+        // Handle both direct response and response with .json() method
+        let timetableData = timetableRes
+        if (typeof timetableRes.json === 'function') {
+          timetableData = await timetableRes.json()
+        } else if (timetableRes && typeof timetableRes === 'object' && 'status' in timetableRes) {
+          timetableData = timetableRes
+        }
+
+        if (timetableData?.status === 1 && Array.isArray(timetableData.data)) {
+          timetableData.data.forEach((t: any) => {
+            if (t.classID || t.class_id) {
+              classIds.add(t.classID || t.class_id)
+            }
+            if (t.subjectId || t.subject_id) {
+              subjectsSet.add(t.subjectId || t.subject_id)
+            }
+          })
+          classesCount = classIds.size
+          subjectsCount = subjectsSet.size
+
+          // Get today's classes
+          todayClasses = this.getTodayClasses(timetableData.data)
+        }
+      } catch (error) {
+        console.error("Error fetching timetable:", error)
+      }
+
+      return {
+        totalStudents: totalStudents || 0,
+        classesCount: classesCount || 0,
+        subjectsCount: subjectsCount || 0,
+        todayClassesCount: todayClasses.length || 0,
+        todayClasses: todayClasses,
+        subjects: Array.from(subjectsSet)
+      }
+    } catch (error) {
+      console.error("Error fetching teacher dashboard stats:", error)
+      return {
+        totalStudents: 0,
+        classesCount: 0,
+        subjectsCount: 0,
+        todayClassesCount: 0,
+        todayClasses: [],
+        subjects: []
+      }
+    }
+  }
+
+  getTodayClasses(timetableData: any[]) {
+    if (!Array.isArray(timetableData)) {
+      return []
+    }
+
+    const today = new Date()
+    const currentTime = today.getHours() * 100 + today.getMinutes()
+
+    return timetableData
+      .map((t: any) => {
+        const start = this.parseTime(t.startTime || t.start_time)
+        const end = this.parseTime(t.endTime || t.end_time)
+        let status: 'completed' | 'next' | 'upcoming' = 'upcoming'
+        
+        if (currentTime >= end) {
+          status = 'completed'
+        } else if (currentTime >= start && currentTime < end) {
+          status = 'next'
+        }
+
+        return {
+          id: t.id,
+          classId: t.classID || t.class_id || t.classId,
+          className: t.className || t.class_name || `Class ${t.classID || t.class_id || t.classId}`,
+          subjectId: t.subjectId || t.subject_id,
+          subjectName: t.subjectName || t.subject_name || `Subject ${t.subjectId || t.subject_id}`,
+          startTime: t.startTime || t.start_time,
+          endTime: t.endTime || t.end_time,
+          status: status
+        }
+      })
+      .sort((a: any, b: any) => {
+        const timeA = this.parseTime(a.startTime)
+        const timeB = this.parseTime(b.startTime)
+        return timeA - timeB
+      })
+  }
+
+  parseTime(timeStr: string): number {
+    if (!timeStr) return 0
+    // Parse time string like "09:00" or "9:00 AM" or "09:00:00"
+    const match = timeStr.match(/(\d+):(\d+)/)
+    if (match) {
+      return parseInt(match[1]) * 100 + parseInt(match[2])
+    }
+    return 0
   }
 
   // Exam endpoints - Using Backend API
