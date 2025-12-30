@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { BookOpen, Calendar, Trophy, Clock, FileText } from "lucide-react"
+import { BookOpen, Calendar, Trophy, Clock, FileText, CreditCard } from "lucide-react"
 import Link from "next/link"
 import { api } from "@/lib/api"
 
@@ -155,6 +155,13 @@ export default function StudentDashboard() {
             >
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="font-medium">Attendance</span>
+            </Link>
+            <Link 
+              href="/dashboard/student/payments" 
+              className="flex items-center gap-3 p-3 text-sm border rounded-lg hover:bg-accent hover:border-accent-foreground/20 transition-colors cursor-pointer"
+            >
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">Pay Fees</span>
             </Link>
           </CardContent>
         </Card>

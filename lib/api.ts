@@ -118,12 +118,10 @@ class ApiClient {
 
   // Client profile (mobile API compatible) endpoints
   async getClientProfile() {
-    // Backend: GET /mobileapi/v1/auth/get-client-profile
     return this.request("/auth/get-client-profile")
   }
 
   async updateClientProfile(formData: FormData) {
-    // Backend: POST /mobileapi/v1/auth/update-client-profile
     // Content-Type will be set automatically by the browser for FormData.
     return this.request("/auth/update-client-profile", {
       method: "POST",
@@ -244,7 +242,6 @@ class ApiClient {
   }
 
   async updateFeesStructure(schoolId: number, id: number, feesData: any) {
-    // Use backend API endpoint - PATCH /mobileapi/v1/fees-structure/:school_id/:id
     return this.request(`/fees-structure/${schoolId}/${id}`, {
       method: "PATCH",
       body: JSON.stringify(feesData),
@@ -897,6 +894,28 @@ class ApiClient {
     return this.request(`/accountant/reports/financial${queryString}`)
   }
 
+  async getAccountantFees(params?: { status?: string; class?: string; studentId?: number; page?: number; limit?: number }) {
+    const queryString = params ? `?${new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()}` : ""
+    return this.request(`/accountant/fees${queryString}`)
+  }
+
+  async updateFeeStatus(feeId: number, data: { status?: string; amount?: number; dueDate?: string }) {
+    return this.request(`/accountant/fees/${feeId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getAccountantPayments(params?: { page?: number; limit?: number; startDate?: string; endDate?: string; method?: string; status?: string }) {
+    const queryString = params ? `?${new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()}` : ""
+    return this.request(`/accountant/payments${queryString}`)
+  }
+
+  async getAllStudentsWithFees(params?: { class?: string; status?: string; search?: string }) {
+    const queryString = params ? `?${new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()}` : ""
+    return this.request(`/accountant/students/fees${queryString}`)
+  }
+
   // Parent APIs
   async getParentDashboardStats() {
     return this.request("/parent/dashboard/stats")
@@ -1067,6 +1086,81 @@ class ApiClient {
   async getIncidents(params?: { status?: string; severity?: string; startDate?: string; endDate?: string; page?: number; limit?: number }) {
     const queryString = params ? `?${new URLSearchParams(Object.entries(params).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()}` : ""
     return this.request(`/security/incidents${queryString}`)
+  }
+
+  // Student Fees Payment APIs (Razorpay)
+  async getSchoolFees(schoolId: number) {
+    return this.request(`/student-fees/school/${schoolId}`)
+  }
+
+  async getStudentFees(schoolId: number, studentId: number) {
+    return this.request(`/student-fees/student/${schoolId}/${studentId}`)
+  }
+
+  // Comprehensive Fees APIs
+  async getTotalFeesBreakdown() {
+    return this.request(`/student-fees/total-fees`)
+  }
+
+  async getStudentFeesSummary(studentId: number) {
+    return this.request(`/student-fees/summary/${studentId}`)
+  }
+
+  async getMyFeesSummary() {
+    return this.request(`/student-fees/my-fees-summary`)
+  }
+
+  async createFee(data: {
+    school_id: number
+    student_id: number
+    fee_type: string
+    amount: number
+    due_date: string
+    status?: string
+    term?: string
+  }) {
+    return this.request("/student-fees", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async createPaymentOrder(data: {
+    feeId: number
+    amount: number
+    description?: string
+  }) {
+    return this.request("/student-fees/create-payment-order", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async verifyPayment(data: {
+    razorpay_order_id: string
+    razorpay_payment_id: string
+    razorpay_signature: string
+    feeId: number
+  }) {
+    return this.request("/student-fees/verify-payment", {
+      method: "POST",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getPaymentHistory(feeId: number) {
+    return this.request(`/student-fees/payment-history/${feeId}`)
+  }
+
+  async updateFee(feeId: number, data: {
+    amount?: number
+    status?: string
+    dueDate?: string
+  }) {
+    return this.request(`/student-fees/${feeId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
   }
 }
 
